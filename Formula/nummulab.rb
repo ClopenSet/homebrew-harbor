@@ -1,10 +1,10 @@
 class Nummulab < Formula
   desc "Keyboard heatmap & programming tool customizable via Lua"
   homepage "https://github.com/ClopenSet/nummulab"
-  url "https://github.com/ClopenSet/nummulab/archive/refs/tags/v1.0.tar.gz"
+  url "https://github.com/ClopenSet/nummulab/archive/refs/tags/v1.1.0.tar.gz"
+  sha256 "cc0d5a42c58864ce9f9f6827d4f1445e3cc8aa91da194ed2e945b7352d26f4e5"
   license "MIT"
   depends_on "go" => :build
-  sha256 "53a27d44ba696ca2574b53aa37c45de0bd2107968479569a60fb4e0e17706cd5"
 
   def install
     # 1. Build the project
@@ -47,11 +47,9 @@ class Nummulab < Formula
     EOS
   end
 
-  def post_install
-    # Ensure the database directory exists
-    (var/"nummulab").mkpath
-    # Ensure the config directory exists (in case install skipped it)
-    (etc/"nummulab").mkpath
+  post_install_steps do
+    mkdir_p "nummulab", base: :var
+    mkdir_p "nummulab", base: :etc
   end
 
   # Define the background service
@@ -59,12 +57,12 @@ class Nummulab < Formula
     run [opt_libexec/"nummulab"]
 
     environment_variables(
-      DEFAULT_NUMMULAB_LUA_PATH: etc/"nummulab/nummulab.lua",
-      DEFAULT_NUMMULAB_PRIVATE_PLUGIN_PATH: libexec/"lsqlite_min",
-      DEFAULT_NUMMULAB_DB_PATH: var/"nummulab/nummulab.db",
-      DEFAULT_NUMMULAB_INITSQL_PATH: etc/"nummulab/nummulab_init.sql"
+      DEFAULT_NUMMULAB_LUA_PATH:            etc/"nummulab/nummulab.lua",
+      DEFAULT_NUMMULAB_PRIVATE_PLUGIN_PATH: opt_libexec/"lsqlite_min",
+      DEFAULT_NUMMULAB_DB_PATH:             var/"nummulab/nummulab.db",
+      DEFAULT_NUMMULAB_INITSQL_PATH:        etc/"nummulab/nummulab_init.sql",
     )
-    
+
     keep_alive true
     log_path var/"log/nummulab.log"
     error_log_path var/"log/nummulab.error.log"
@@ -72,48 +70,33 @@ class Nummulab < Formula
   end
 
   def caveats
-    red = "\033[31m"
-    bold = "\033[1m"
-    reset = "\033[0m"
-
     <<~EOS
+      Initialize the local database before starting the service:
+        nummulab init
 
-      1. Initialization:
-         Before running the service, please initialize the database by running:
-         $ nummulab init
-          This database will be initialized in the #{var}. When uninstalling, no caveat will be triggered. You should run 'nummulab delete' or manually delete it.
-          If a previous database is located here, this init command won't do anything.
+      Existing data is preserved during upgrades. To remove it, run
+      `nummulab delete` before uninstalling, or remove it manually from:
+        #{var}/nummulab
 
-      2. Configuration:
-         You can modify the behavior of the application by editing:
-         #{etc}/nummulab/nummulab.lua (It is configured to be a keylogger to show its ability.)
+      The Lua configuration is installed at:
+        #{etc}/nummulab/nummulab.lua
 
-         You can check the documentation at:
-         #{doc}/README.md
+      To monitor keyboard events, grant Input Monitoring and Accessibility
+      permissions to:
+        #{opt_libexec}/nummulab
 
-      #{red} #{bold}
-      3. This software requires high-level privileges to monitor keyboard events. However, all data and logic are preserved locally and therefore it won't cast any risks.
-        If upgraded or reinstalled, the previous permissions should be cancelled and regranted to the new software.
+      These permissions are managed in System Settings > Privacy & Security.
+      macOS may require them to be granted again after an upgrade. Keyboard
+      analytics and configuration remain on this Mac.
 
-        Please manually grant permissions in 'System Settings -> Privacy & Security':
-        1. System Settings > Privacy & Security > Input Monitoring: Add and enable '#{opt_libexec}/nummulab'
-        2. System Settings > Privacy & Security > Accessibility: Add and enable '#{opt_libexec}/nummulab'
+      Start the background service with:
+        brew services start nummulab
 
-        Click your 'Macintosh HD' > /opt (If not shown, use Command + Shift + Dot to reveal the hidden ) > ... [Provided that you install your homebrew here]
-      #{reset}
+      Open the interactive heatmap with:
+        nummulab-heatmap
 
-      4. Service:
-        To start nummulab now and restart at login:
-        $ brew services start nummulab
-        $ brew services 
-        If 'started' are shown, it's started successfully. 
-      
-      5. Usage:
-        An interactive heatmap is embedded. Use  #{red}#{bold}'nummulab-heatmap'#{reset} to see the result.
-        Modify the script and restart the service to change its behavior. If temporarily tested, use the #{red}#{bold}'nummulab'#{reset} cli which needs no options and controlled completely by the script.
-        See the docs at #{doc}/README.md for further informations.
-      
+      Documentation is available at:
+        #{doc}/README.md
     EOS
   end
-
 end
