@@ -99,4 +99,14 @@ class Nummulab < Formula
         #{doc}/README.md
     EOS
   end
+
+  test do
+    ENV["DEFAULT_NUMMULAB_LUA_PATH"] = etc/"nummulab/nummulab.lua"
+    ENV["DEFAULT_NUMMULAB_PRIVATE_PLUGIN_PATH"] = libexec/"lsqlite_min"
+    ENV["DEFAULT_NUMMULAB_DB_PATH"] = testpath/"nummulab.db"
+    ENV["DEFAULT_NUMMULAB_INITSQL_PATH"] = etc/"nummulab/nummulab_init.sql"
+
+    system libexec/"nummulab", "init"
+    assert_path_exists testpath/"nummulab.db"
+  end
 end
